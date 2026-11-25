@@ -133,9 +133,6 @@ on Linux. It is never shipped to the target. Running the host build
 also prepares `plugin/build/host-include/`, the symlinked Mosquitto
 headers the QNX Makefile reuses (see below).
 
-Note: the helper scripts are stored without the executable bit, so
-run them with `sh` or `chmod +x` first.
-
 ### QNX cross build (needs the SDP 8.0 toolchain)
 
 ```sh
