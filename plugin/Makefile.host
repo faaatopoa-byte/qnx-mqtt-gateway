@@ -1,0 +1,57 @@
+# Makefile.host — host build for the qnx-mqtt-gateway (gcc, Linux).
+#
+# The verified Mosquitto headers live in third-party/mosquitto/ under their
+# upstream file names (upstream-mosquitto_plugin.h etc.). The plugin
+# includes them as <mosquitto_plugin.h> / <mosquitto_broker.h> /
+# <mosquitto.h> — the names the real QNX port install provides — so this
+# Makefile creates those names as symlinks in build/host-include/ and
+# points the compiler there. No header is copied or renamed in the repo.
+#
+# Targets:
+#   all    — plugin .so (host stub IPC) + unit-test binary
+#   plugin — build/host/qnx_bridge.so
+#   test   — build/host/test_gateway, then run it (same as test/run_tests.sh)
+#   check  — alias for test
+#   clean  — remove build/host/
+
+CC      ?= gcc
+CFLAGS  := -std=c11 -O2 -Wall -Wextra -Werror -pthread \
+           -I../common -I. -Ibuild/host-include
+LDFLAGS := -pthread
+
+REFDIR      := ../third-party/mosquitto
+INCDIR      := build/host-include
+PLUGIN_SO   := build/host/qnx_bridge.so
+TEST_BIN    := build/host/test_gateway
+
+PLUGIN_SRCS := qnx_bridge.c qnx_ipc_host.c ../common/qnx_msg.c
+TEST_SRCS   := ../test/test_gateway.c qnx_bridge.c qnx_ipc_host.c ../common/qnx_msg.c
+
+all: plugin test-bin
+
+plugin: $(PLUGIN_SO)
+
+$(INCDIR)/mosquitto_plugin.h: $(REFDIR)/upstream-mosquitto_plugin.h
+	@mkdir -p $(INCDIR)
+	ln -sf $(abspath $(REFDIR)/upstream-mosquitto_plugin.h) $@
+	ln -sf $(abspath $(REFDIR)/upstream-mosquitto_broker.h) $(INCDIR)/mosquitto_broker.h
+	ln -sf $(abspath $(REFDIR)/upstream-mosquitto.h) $(INCDIR)/mosquitto.h
+
+$(PLUGIN_SO): $(PLUGIN_SRCS) $(INCDIR)/mosquitto_plugin.h
+	@mkdir -p build/host
+	$(CC) $(CFLAGS) -shared -fPIC $(PLUGIN_SRCS) -o $@ $(LDFLAGS)
+	@echo "built $@ (host stub IPC; broker symbols resolved by mosquitto at load time)"
+
+test-bin: $(TEST_BIN)
+
+$(TEST_BIN): $(TEST_SRCS) $(INCDIR)/mosquitto_plugin.h
+	@mkdir -p build/host
+	$(CC) $(CFLAGS) $(TEST_SRCS) -o $@ $(LDFLAGS)
+
+test check: $(TEST_BIN)
+	./$(TEST_BIN)
+
+clean:
+	rm -rf build/host
+
+.PHONY: all plugin test-bin test check clean

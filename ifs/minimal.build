@@ -1,0 +1,122 @@
+# Minimal IFS v8: v7 + qcrypto.conf (inline, isi dari stock
+# ifs.build.orig:217-219: `openssl-3 tags=*`) + symlink
+# /etc/qcrypto.conf -> /proc/boot/qcrypto.conf + penanda `mark`
+# (helper binary; if/then/else/fi TIDAK BERFUNGSI di interpreter
+# script mkifs — terbukti v7: 3x `Unable to start "if"/"then"/
+# "else"/"fi"`) + random + libqcrypto/libqh sudah di image (v7).
+# Plugin qcrypto-openssl-3.so (stock ifs.build.orig:213) SUDAH ADA
+# di tree SDP (paket qcrypto.openssl3 v0.0.2.02029, SHA1 cocok,
+# 101.840 B, NEEDED libcrypto/libqcrypto/libc/libgcc_s — semua
+# sudah di image) dan dimasukkan ke image ini sebagai file biasa
+# (mkifs menaruh semua file di /proc/boot/ dengan basename saja,
+# jadi plugin mendarat di /proc/boot/qcrypto-openssl-3.so;
+# LD_LIBRARY_PATH=/proc/boot menjangkaunya).
+# mosquitto.conf berisi `user root` (cacat akar #2 tes v4).
+#
+# KOREKSI (riset Gemini): path QNX yang benar adalah /dev/shmem,
+# BUKAN /dev/shm (itu path Linux). /dev/shmem built-in di procnto.
+# mount_shm KEMUNGKINAN NO-OP (dipertahankan karena tidak merusak
+# + log-nya diagnostik). Urutan stock: slogger2 -> random -> io-sock.
+[search=/home/hatch/qnx/qnx800/target/qnx/x86_64:/home/hatch/qnx/qnx800/target/qnx/x86_64/boot/sys:/home/hatch/qnx/qnx800/target/qnx/x86_64/usr/lib:/home/hatch/qnx/qnx800/target/qnx/x86_64/usr/sbin:/home/hatch/qnx/qnx800/target/qnx/x86_64/lib:/home/hatch/qnx/qnx800/target/qnx:/home/hatch/workspace/qnx-hackathon/gateway/plugin:/home/hatch/workspace/qnx-hackathon/gateway/demo:/home/hatch/workspace/qnx-hackathon/minimal-ifs:/home/hatch/workspace/qnx-hackathon/gateway/test]
+
+[image=32m]
+[virtual=x86_64,multiboot] boot = {
+    startup-x86 -D8250..115200 -zz -f 0,0,1000M
+    PATH=/proc/boot:/bin
+    LD_LIBRARY_PATH=/proc/boot:/lib:/usr/lib
+    procnto-smp-instr
+}
+
+[+script] startup-script = {
+    procmgr_symlink /proc/boot/ldqnx-64.so.2 /usr/lib/ldqnx-64.so.2
+    procmgr_symlink /proc/boot/ksh /bin/sh
+    procmgr_symlink /proc/boot/ksh /bin/ksh
+    procmgr_symlink /proc/boot/libmosquitto.so.2.0.15 /proc/boot/libmosquitto.so.1
+    display_msg "MINIMAL IFS BOOT OK"
+    devc-ser8250 -e &
+    waitfor /dev/ser1
+    reopen /dev/ser1
+    display_msg "GATEWAY TEST: mounting shm fs"
+    mount_shm
+    mark /dev/shmem shmem
+    display_msg "GATEWAY TEST: timer-timeout probe"
+    test_timer_timeout &
+    waitfor /dev/delay 20
+    display_msg "GATEWAY TEST: starting slogger2"
+    slogger2
+    mark /dev/shmem/slogger2 slogger2
+    mark /dev/console console
+    waitfor /dev/delay 2
+    display_msg "GATEWAY TEST: starting random"
+    random &
+    waitfor /dev/random 10
+    mark /dev/random random
+    display_msg "GATEWAY TEST: starting io-sock"
+    io-sock
+    waitfor /dev/socket 10
+    mark /dev/socket socket
+    display_msg "GATEWAY TEST: slog buffer dump"
+    slog2info
+    display_msg "GATEWAY TEST: starting broker"
+    mosquitto -c /proc/boot/mosquitto.conf -v &
+    waitfor /dev/delay 10
+    display_msg "GATEWAY TEST: starting sensor"
+    qnx_sensor &
+    mosquitto_sub -h 127.0.0.1 -t qnx/sensor/temp -v &
+    mosquitto_sub -h 127.0.0.1 -t qnx/sensor/ack -v &
+    mosquitto_sub -h 127.0.0.1 -t qnx/sensor/status -v &
+    waitfor /dev/delay 10
+    mosquitto_pub -h 127.0.0.1 -t qnx/cmd/sensor/set_interval -m 5
+    waitfor /dev/delay 2
+    mosquitto_pub -h 127.0.0.1 -t qnx/cmd/sensor/led -m on
+    waitfor /dev/delay 2
+    mosquitto_pub -h 127.0.0.1 -t qnx/cmd/sensor/ping -m x
+    waitfor /dev/delay 6
+    display_msg "GATEWAY TEST: process list"
+    pidin
+    display_msg "GATEWAY TEST SEQUENCE DONE"
+    [+session] sh -l
+}
+
+[uid=0 gid=0]
+bin/ksh
+sbin/devc-ser8250
+bin/on
+bin/waitfor
+bin/slogger2
+sbin/io-sock
+sbin/io-sock-diag
+usr/sbin/random
+bin/slog2info
+bin/pidin
+usr/local/sbin/mosquitto
+usr/local/bin/mosquitto_sub
+usr/local/bin/mosquitto_pub
+qnx_bridge.so
+qnx_sensor
+test_timer_timeout
+mount_shm
+mark
+lib/dll/qcrypto-openssl-3.so
+mosquitto.conf
+[uid=0 gid=0 perms=0444] qcrypto.conf={
+openssl-3 tags=*
+}
+[type=link] /etc/qcrypto.conf=/proc/boot/qcrypto.conf
+[type=link] sh=ksh
+
+[-autolink]
+lib/libc.so.6
+usr/lib/ldqnx-64.so.2
+lib/libgcc_s.so.1
+lib/libsecpol.so.1
+lib/libsocket.so.4
+usr/lib/libssl.so.3
+usr/lib/libcrypto.so.3
+lib/libm.so.3
+lib/libslog2.so.1
+lib/libslog2parse.so.1
+usr/lib/libqcrypto.so.1.0
+lib/libqh.so.1
+usr/lib/libz.so.2
+usr/local/lib/libmosquitto.so.2.0.15

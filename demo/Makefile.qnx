@@ -1,0 +1,41 @@
+# qnx_sensor — QNX cross build (x86_64)
+#
+# Requires the QNX SDP 8.0 toolchain: source the SDP environment first,
+# e.g.  . ~/qnx/qnx800/qnxsdp-env.sh   (sets QNX_HOST and QNX_TARGET)
+#
+#   make -f Makefile.qnx          build qnx_sensor for x86_64
+#   make -f Makefile.qnx clean    remove the binary
+#
+# The demo links agent A's IPC backend (plugin/qnx_ipc_qnx.c) and the
+# shared framing code (common/qnx_msg.c). -lsocket is needed for the
+# name_attach/name_open (Qnet) side of the QNX IPC backend.
+
+ifndef QNX_TARGET
+$(error QNX_TARGET is not set — source the QNX SDP environment first, e.g. . ~/qnx/qnx800/qnxsdp-env.sh)
+endif
+
+CC      := qcc -Vgcc_ntox86_64
+CFLAGS  := -O2 -Wall -Wextra -I../plugin -I../common
+# NOTE: no -lm — this SDP install ships no math.h/libm; the demo's sine
+# drift is a Taylor approximation (see demo_sin in qnx_sensor.c).
+# NOTE: no -lsocket/-lpthread either — this SDP's target tree has no
+# libsocket.so/libpthread.so; all symbols the demo needs resolve from
+# libc.so (verified by a clean link 25 Nov 2026).
+LDFLAGS :=
+
+SRCS := qnx_sensor.c ../plugin/qnx_ipc_qnx.c ../common/qnx_msg.c
+TARGET := qnx_sensor
+
+# aarch64 (stretch goal — same file, untested until the toolchain lands):
+#   CC := qcc -Vgcc_ntoaarch64le
+#   (everything else unchanged)
+
+.PHONY: all clean
+
+all: $(TARGET)
+
+$(TARGET): $(SRCS)
+	$(CC) $(CFLAGS) $(SRCS) -o $@ $(LDFLAGS)
+
+clean:
+	rm -f $(TARGET)

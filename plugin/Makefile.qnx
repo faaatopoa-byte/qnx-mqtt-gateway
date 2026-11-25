@@ -1,0 +1,62 @@
+# Makefile.qnx — build the qnx-mqtt-gateway plugin for QNX SDP 8.0 (x86_64).
+#
+# Requires: qcc on PATH, QNX_HOST/QNX_TARGET set, e.g.:
+#   export QNX_HOST=$HOME/qnx/qnx800/host/linux/x86_64
+#   export QNX_TARGET=$HOME/qnx/qnx800/target/qnx
+#   export PATH=$QNX_HOST/usr/bin:$PATH
+# (This SDP install has no qnxsdp-env.sh; set the variables by hand.)
+#
+# Mosquitto headers: the official port is NOT installed into
+# $QNX_TARGET yet, so the build uses build/host-include/ — local copies
+# verified byte-identical to qnx-ports/mosquitto v2.0.15 (see
+# third-party/mosquitto/). Switch -I to $(QNX_TARGET)/usr/local/include once the
+# port is installed. The plugin is built ON TOP of that port; it does
+# not re-port Mosquitto.
+#
+# Outputs: qnx_bridge.so (the broker plugin). The demo app is built by
+# demo/Makefile.qnx and is NOT built here.
+
+ifndef QNX_TARGET
+$(error QNX_TARGET is not set. Export QNX_HOST/QNX_TARGET first, e.g.: \
+  export QNX_HOST=$$HOME/qnx/qnx800/host/linux/x86_64 \
+  export QNX_TARGET=$$HOME/qnx/qnx800/target/qnx \
+  export PATH=$$QNX_HOST/usr/bin:$$PATH)
+endif
+
+QCC      ?= qcc
+TARGET   := gcc_ntox86_64
+CFLAGS   := -V$(TARGET) -shared -fPIC -O2 -Wall -Wextra -std=c11 \
+            -D_QNX_SOURCE \
+            -Ibuild/host-include \
+            -I../common
+LDFLAGS  := -V$(TARGET) -shared
+
+# NOTE on -lmosquitto: NOT linked. The broker resolves all plugin
+# symbols at load time, and this SDP install has no libmosquitto yet
+# (the port is not installed). If a port install later provides a link
+# library and the load fails on undefined symbols, re-add
+# "-L$(QNX_TARGET)/usr/local/lib -lmosquitto" here.
+
+SRCS := qnx_bridge.c qnx_ipc_qnx.c ../common/qnx_msg.c
+OBJS := $(SRCS:.c=.o)
+
+all: qnx_bridge.so
+
+qnx_bridge.so: $(OBJS)
+	$(QCC) $(LDFLAGS) -o $@ $(OBJS)
+
+%.o: %.c
+	$(QCC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) qnx_bridge.so
+
+.PHONY: all clean
+
+# --- aarch64 (stretch goal, UNTESTED until the toolchain lands) ---------
+# To build for aarch64, run:
+#   make -f Makefile.qnx TARGET=gcc_ntoaarch64le
+# The TARGET variable above is honoured as-is, so no file edit is needed;
+# the block below is kept as documentation of the intended variant.
+#   TARGET := gcc_ntoaarch64le
+# ------------------------------------------------------------------------

@@ -1,0 +1,31 @@
+# qnx_sensor — host build (logic test only, never shipped to target)
+#
+# Builds the demo against the host stub IPC backend
+# (plugin/qnx_ipc_host.c: Unix-domain socket, same API as the QNX
+# backend) so the demo's command/telemetry logic can be exercised on
+# a Linux host before the QNX toolchain exists.
+#
+#   make -f Makefile.host         build ./qnx_sensor_host
+#   make -f Makefile.host clean   remove the binary
+#
+# NOTE: running qnx_sensor_host on its own is not a useful test — it
+# will wait up to 60 s for the bridge channel and exit, because the
+# bridge (plugin worker thread) is not running. Host end-to-end runs
+# need agent A's test harness; see test/run_tests.sh and README.md.
+
+CC      := gcc
+CFLAGS  := -O2 -Wall -Wextra -pthread -I../third-party/mosquitto -I../plugin -I../common
+LDFLAGS := -lm -lpthread
+
+SRCS := qnx_sensor.c ../plugin/qnx_ipc_host.c ../common/qnx_msg.c
+TARGET := qnx_sensor_host
+
+.PHONY: all clean
+
+all: $(TARGET)
+
+$(TARGET): $(SRCS)
+	$(CC) $(CFLAGS) $(SRCS) -o $@ $(LDFLAGS)
+
+clean:
+	rm -f $(TARGET)
