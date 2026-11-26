@@ -3,7 +3,7 @@
 ## A codelab: bridge a Mosquitto broker to QNX message passing with a plugin, and prove it works in QEMU
 
 **Repo:** https://github.com/faaatopoa-byte/qnx-mqtt-gateway
-**Tested with:** QNX SDP 8.0, Mosquitto 2.0.15 (official QNX port), QEMU x86_64
+**Tested with:** QNX SDP 8.0 and 8.0.6, Mosquitto 2.0.15 (official QNX port), QEMU x86_64
 **Reading time:** about 20 minutes. **Hands-on time:** about 3 to 4 hours if you start from a fresh SDP install, under an hour if the toolchain is already in place.
 
 ---
@@ -53,7 +53,7 @@ The finished system is 2,826 lines of C with 241 host unit tests, and it was ver
 
 2. Run the installer and use the Software Center to install SDP 8.0 (baseline `com.qnx.qnx800` v8.0.0.00141T202311271501L or patchset 8.0.6). The multi-gigabyte part is the SDP packages, downloaded by the Software Center after licence sync.
 
-   **Version note:** this codelab was tested with SDP 8.0 (baseline `com.qnx.qnx800` v8.0.0.00141T202311271501L or patchset 8.0.6), QEMU 8.2.2, and Mosquitto 2.0.15. If the Software Center gives you a newer patchset, most steps should still work — SDP 8.0 patchsets are backward-compatible — but package names, file locations, or behaviour may differ slightly. If a step fails, check your versions first and compare them with the versions listed here.
+   **Version note:** this codelab was tested with SDP 8.0 (baseline `com.qnx.qnx800` v8.0.0.00141T202311271501L or patchset 8.0.6), QEMU 8.2.2, and Mosquitto 2.0.15. The same steps were verified end to end on a full SDP 8.0.6 install with zero code changes (27 Nov 2026). If the Software Center gives you a newer patchset, most steps should still work — SDP 8.0 patchsets are backward-compatible — but package names, file locations, or behaviour may differ slightly. If a step fails, check your versions first and compare them with the versions listed here.
 
 3. Set up the environment by hand. A full SDP install may provide `qnxsdp-env.sh`; a hand-assembled one, like the one used for this project, does not — the file exists nowhere under `~/qnx`, so do not rely on sourcing it. Set the variables yourself:
 

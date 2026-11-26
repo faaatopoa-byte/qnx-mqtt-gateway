@@ -35,6 +35,11 @@ The gateway runs end to end on QEMU x86_64. The last full run
 The host unit tests pass too: 241 checks, 0 failures
 (`test/run_tests.sh`).
 
+Verified on SDP 8.0 and SDP 8.0.6 with zero code changes: the
+full 600-second run was repeated on a clean 8.0.6 tree on
+27 Nov 2026 with identical results (115 telemetry, all three
+commands, pong, 0 NAK, 0 drops).
+
 ## Architecture
 
 ```
