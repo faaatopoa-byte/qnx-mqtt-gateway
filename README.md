@@ -40,6 +40,15 @@ full 600-second run was repeated on a clean 8.0.6 tree on
 27 Nov 2026 with identical results (115 telemetry, all three
 commands, pong, 0 NAK, 0 drops).
 
+## Load testing (28 Nov 2026, QEMU x86_64, SDP 8.0.6)
+
+**Verdict: the gateway never lost a message at any level tested** (up to 44,703 messages in a single run, 66,150 total, 0 lost).
+
+- **20,000-message burst: clean pass.** 20,000 published at once, 20,000 received, 0 dropped. Across all levels of that run (100 → 1,000 → 5,000 → 10,000 → 5 publishers at once → 50 sequential connections → 20,000 burst): **66,150 messages, 0 dropped**, broker alive throughout. Command path: 100 ping → 100 pong.
+- **100,000 in one burst: not yet tested, not failed.** The stock sender tool (`mosquitto_pub`) stalled at ~45,000 messages before the gateway was ever stressed; the broker still forwarded 100% of everything it received (44,703 → 44,703, 0 lost in the broker). Highest clean level stays 20,000 in one burst.
+- Honest limits: tested in QEMU, not on real QNX hardware (throughput ~150–185 msgs/s is a floor, not a ceiling); QoS 0 only; the 100-ping command check did not run in the 100K session.
+- Full reports: `docs/LOAD-TEST-2026-11-28.md` and `docs/LOAD-TEST-100K-2026-11-28.md`.
+
 ## Architecture
 
 ```
