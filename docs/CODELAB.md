@@ -459,6 +459,12 @@ Each one stopped a real test run, and each fix is in the code you just built.
 
 ---
 
+## Load testing: how far it goes
+
+**Verdict: the gateway never lost a message at any level tested.** A 20,000-message burst passed clean (20,000/20,000, 0 dropped); across all levels of that run, 66,150 messages with 0 dropped, and 100 ping → 100 pong on the command path. A 100,000-message burst is not yet tested, not failed: the stock sender tool (`mosquitto_pub`) stalled at ~45,000 messages before the gateway was ever stressed, while the broker forwarded 100% of everything it received (44,703 → 44,703). So 20,000 in one burst is the highest level proven clean — plenty for real use (a home sensor sends about 1 message per second). Full reports: `docs/LOAD-TEST-2026-11-28.md` and `docs/LOAD-TEST-100K-2026-11-28.md`.
+
+---
+
 ## Where to go next
 
 - Point the bridge at a real device instead of the demo sensor: any native QNX app can register with a HELLO and a topic prefix, and the registry holds up to 8 apps.
